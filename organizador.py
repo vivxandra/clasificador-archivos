@@ -1,7 +1,12 @@
 import pathlib
 import json
+import argparse
+import logging
 
-
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Organizador de archivos por categorías.")
+    parser.add_argument("--dry-run", action="store_true", help="Simula la organización sin mover archivos.")
+    return parser.parse_args()
 
             
 def cargar_categorias():
@@ -51,7 +56,7 @@ def obtener_nombre_archivo_unico(carpeta_destino, nombre_archivo):
         contador += 1
     return nombre_archivo_unico
 
-def organizar_archivos(ruta, DESGLOSE):
+def organizar_archivos(ruta, DESGLOSE, dry_run=False):
     for archivo in ruta.iterdir():
         if archivo.is_file():
             categoria = clasificar_archivo(archivo.name, DESGLOSE)
@@ -59,22 +64,40 @@ def organizar_archivos(ruta, DESGLOSE):
                 carpeta_destino = ruta / categoria
                 carpeta_destino.mkdir(exist_ok=True)
                 nombre_archivo_unico = obtener_nombre_archivo_unico(carpeta_destino, archivo.name)
-                try:
-                    archivo.rename(carpeta_destino / nombre_archivo_unico)
-                except FileNotFoundError as e:
-                    print(f"Error al mover el archivo {archivo.name}: {e}")
-                except PermissionError as e:
-                    print(f"Permiso denegado al mover el archivo {archivo.name}: {e}")
+                if not dry_run:
+                    try:
+                        archivo.rename(carpeta_destino / nombre_archivo_unico)
+                        logger.info(f"Archivo {archivo.name} movido correctamente a {carpeta_destino}")
+                    except FileNotFoundError as e:
+                        logger.error(f"Archivo no encontrado al mover {archivo.name}: {e}")
+                    except PermissionError as e:
+                        logger.error(f"Permiso denegado al mover {archivo.name}: {e}")
+                if dry_run:
+                    logger.info(f"[DRY RUN] Archivo {archivo.name} se movería a {carpeta_destino}")
                 
-                print(f"Archivo {archivo.name} movido a {carpeta_destino}")
+                
             else:
-                print(f"Archivo {archivo.name} no pertenece a ninguna categoría.")
+                logger.warning(f"Archivo {archivo.name} no pertenece a ninguna categoría definida.")
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+fh = logging.FileHandler('organizador.log', encoding='utf-8')
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
+sh = logging.StreamHandler()
+sh.setFormatter(formatter)
+logger.addHandler(sh)
+
 
 if __name__ == "__main__":
+    args = parse_arguments()
+    dry_run = args.dry_run
     CATEGORIAS = cargar_categorias()
     DESGLOSE = organizar_categorias(CATEGORIAS)
     ruta = obtener_ruta()
-    organizar_archivos(ruta, DESGLOSE)
+    organizar_archivos(ruta, DESGLOSE, dry_run)
 
 
 
