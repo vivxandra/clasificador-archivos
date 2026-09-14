@@ -1,0 +1,6 @@
+{
+  "Imagenes": [".jpg", ".png", ".jpeg"],
+  "Libros": [".pdf", ".epub"],
+  "Docs": [".docx", ".xml", ".pptx"],
+  "Video": [".mp4"]
+}
