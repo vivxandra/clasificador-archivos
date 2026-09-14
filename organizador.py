@@ -56,28 +56,34 @@ def obtener_nombre_archivo_unico(carpeta_destino, nombre_archivo):
         contador += 1
     return nombre_archivo_unico
 
+
+def mover_archivo(archivo, carpeta_destino, dry_run=False):
+    nombre_archivo_unico = obtener_nombre_archivo_unico(carpeta_destino, archivo.name)
+
+    if dry_run:
+        logger.info(f"[DRY RUN] Archivo {archivo.name} se movería a {carpeta_destino}")
+        return
+    try:
+        archivo.rename(carpeta_destino / nombre_archivo_unico)
+        logger.info(f"Archivo {archivo.name} movido correctamente a {carpeta_destino}")
+        return
+    except FileNotFoundError as e:
+        logger.error(f"Archivo no encontrado al mover {archivo.name}: {e}")
+    except PermissionError as e:
+        logger.error(f"Permiso denegado al mover {archivo.name}: {e}")
+
 def organizar_archivos(ruta, DESGLOSE, dry_run=False):
     for archivo in ruta.iterdir():
         if archivo.is_file():
             categoria = clasificar_archivo(archivo.name, DESGLOSE)
             if categoria:
+                if dry_run:
+                    logger.info(f"[DRY RUN] Archivo {archivo.name} se moveria a la carpeta {categoria}")
+                    return
                 carpeta_destino = ruta / categoria
                 carpeta_destino.mkdir(exist_ok=True)
-                nombre_archivo_unico = obtener_nombre_archivo_unico(carpeta_destino, archivo.name)
-                if not dry_run:
-                    try:
-                        archivo.rename(carpeta_destino / nombre_archivo_unico)
-                        logger.info(f"Archivo {archivo.name} movido correctamente a {carpeta_destino}")
-                    except FileNotFoundError as e:
-                        logger.error(f"Archivo no encontrado al mover {archivo.name}: {e}")
-                    except PermissionError as e:
-                        logger.error(f"Permiso denegado al mover {archivo.name}: {e}")
-                if dry_run:
-                    logger.info(f"[DRY RUN] Archivo {archivo.name} se movería a {carpeta_destino}")
-                
-                
-            else:
-                logger.warning(f"Archivo {archivo.name} no pertenece a ninguna categoría definida.")
+                mover_archivo(archivo, carpeta_destino, dry_run)
+
 
 
 logger = logging.getLogger(__name__)
